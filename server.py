@@ -5,7 +5,8 @@ import anthropic
 from dotenv import load_dotenv
 load_dotenv()
 
-app = Flask(__name__, static_folder="public")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_folder=os.path.join(BASE_DIR, "public"))
 
 SYSTEM_PROMPT = """あなたは「Claude ヘルプアシスタント」です。Anthropic の Claude に関するすべての機能・使い方について詳しく答える専門家です。
 
@@ -63,7 +64,7 @@ SYSTEM_PROMPT = """あなたは「Claude ヘルプアシスタント」です。
 
 @app.route("/")
 def index():
-    return send_from_directory("public", "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "public"), "index.html")
 
 
 @app.route("/api/chat", methods=["POST"])

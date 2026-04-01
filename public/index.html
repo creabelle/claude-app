@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude ヘルプアシスタント</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface2: #f0f0f5;
+      --border: #e2e2e7;
+      --text: #1d1d1f;
+      --text2: #6e6e73;
+      --accent: #D97553;
+      --accent-light: #FEF0E7;
+      --user-bg: #D97553;
+      --user-text: #ffffff;
+      --ai-bg: #ffffff;
+      --ai-text: #1d1d1f;
+      --code-bg: #f4f4f8;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    body.dark {
+      --bg: #0d0d0f;
+      --surface: #1a1a1f;
+      --surface2: #222228;
+      --border: #2e2e38;
+      --text: #e8e8ed;
+      --text2: #8e8e99;
+      --accent: #E8895A;
+      --accent-light: #2A1508;
+      --user-bg: #C86535;
+      --user-text: #ffffff;
+      --ai-bg: #1a1a1f;
+      --ai-text: #e8e8ed;
+      --code-bg: #111116;
+      --shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #D97553, #F0A07A);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 18px;
+    }
+    .logo-text { font-size: 15px; font-weight: 600; }
+    .logo-sub  { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    #darkToggle {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #darkToggle:hover { background: var(--accent-light); }
+
+    /* ── Quick topics ── */
+    .topics-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    .topics-bar::-webkit-scrollbar { display: none; }
+    .topic-btn {
+      white-space: nowrap;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .topic-btn:hover {
+      background: var(--accent-light);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* ── Messages ── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Welcome screen */
+    .welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+      padding: 40px 20px;
+      color: var(--text2);
+    }
+    .welcome-icon {
+      font-size: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .welcome h2 { font-size: 20px; font-weight: 600; color: var(--text); }
+    .welcome p  { font-size: 14px; max-width: 360px; line-height: 1.6; }
+    .welcome-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+      max-width: 420px;
+      width: 100%;
+    }
+    .welcome-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--text);
+    }
+    .welcome-card:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .welcome-card .card-icon { font-size: 16px; margin-bottom: 4px; }
+    .welcome-card .card-title { font-weight: 600; margin-bottom: 2px; }
+    .welcome-card .card-desc  { color: var(--text2); font-size: 11px; }
+
+    /* Message bubbles */
+    .msg {
+      display: flex;
+      gap: 10px;
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .msg.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      align-self: flex-end;
+    }
+    .msg.ai .avatar {
+      background: linear-gradient(135deg, #D97553, #F0A07A);
+      color: white;
+    }
+    .msg.user .avatar {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+
+    .bubble {
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.65;
+      max-width: calc(100% - 52px);
+      word-break: break-word;
+    }
+    .msg.user .bubble {
+      background: var(--user-bg);
+      color: var(--user-text);
+      border-bottom-right-radius: 4px;
+    }
+    .msg.ai .bubble {
+      background: var(--ai-bg);
+      color: var(--ai-text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Markdown styles inside bubble */
+    .bubble h1,.bubble h2,.bubble h3 {
+      font-size: 15px; font-weight: 600;
+      margin: 12px 0 6px;
+    }
+    .bubble h1:first-child,.bubble h2:first-child,.bubble h3:first-child { margin-top: 0; }
+    .bubble p { margin: 6px 0; }
+    .bubble ul,.bubble ol {
+      margin: 6px 0 6px 20px;
+    }
+    .bubble li { margin: 3px 0; }
+    .bubble code {
+      background: var(--code-bg);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "Menlo","Consolas",monospace;
+      font-size: 12px;
+    }
+    .msg.user .bubble code {
+      background: rgba(255,255,255,0.2);
+    }
+    .bubble pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .bubble pre code {
+      background: none;
+      padding: 0;
+      font-size: 12px;
+    }
+    .bubble blockquote {
+      border-left: 3px solid var(--accent);
+      margin: 8px 0;
+      padding-left: 12px;
+      color: var(--text2);
+    }
+    .bubble strong { font-weight: 600; }
+    .bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12px; }
+    .bubble th,.bubble td { border: 1px solid var(--border); padding: 6px 10px; }
+    .bubble th { background: var(--surface2); font-weight: 600; }
+
+    /* Typing indicator */
+    .typing .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: var(--text2);
+      border-radius: 50%;
+      margin: 0 2px;
+      animation: bounce 1.2s infinite;
+    }
+    .typing .dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30%          { transform: translateY(-6px); }
+    }
+
+    /* Copy button */
+    .msg-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { background: var(--accent-light); color: var(--accent); }
+
+    /* ── Input area ── */
+    .input-area {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+    .input-wrap {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 8px 8px 8px 14px;
+      transition: border-color 0.2s;
+    }
+    .input-wrap:focus-within { border-color: var(--accent); }
+    #input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      color: var(--text);
+      resize: none;
+      max-height: 160px;
+      line-height: 1.5;
+      font-family: inherit;
+    }
+    #input::placeholder { color: var(--text2); }
+    #sendBtn {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    #sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+    #sendBtn:not(:disabled):hover { opacity: 0.85; }
+    #sendBtn:not(:disabled):active { transform: scale(0.95); }
+    #sendBtn svg { width: 16px; height: 16px; fill: white; }
+
+    .input-footer {
+      max-width: 800px;
+      margin: 6px auto 0;
+      font-size: 11px;
+      color: var(--text2);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+        <path d="M19 7C16.8 4.5 13.6 3 10 3C4.5 3 0 7.5 0 13C0 18.5 4.5 23 10 23C13.6 23 16.8 21.5 19 19" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M15.5 10C14.1 8.2 11.9 7 9.5 7C5.9 7 3 9.9 3 13.5C3 17.1 5.9 20 9.5 20C11.9 20 14.1 18.8 15.5 17" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Claude ヘルプアシスタント</div>
+      <div class="logo-sub">Claude Code・チャット・プロジェクト・API について質問できます</div>
+    </div>
+  </div>
+  <button id="darkToggle">🌙 ダーク</button>
+</header>
+
+<div class="topics-bar">
+  <button class="topic-btn" onclick="quickAsk('Claude Code のインストール方法を教えてください')">🖥️ Claude Code インストール</button>
+  <button class="topic-btn" onclick="quickAsk('Claude Code のスラッシュコマンド一覧を教えてください')">/ スラッシュコマンド</button>
+  <button class="topic-btn" onclick="quickAsk('Claude Code のhooks（ホック）機能とは何ですか？使い方を教えてください')">🪝 Hooks機能</button>
+  <button class="topic-btn" onclick="quickAsk('MCP（Model Context Protocol）サーバーの設定方法を教えてください')">🔌 MCP設定</button>
+  <button class="topic-btn" onclick="quickAsk('CLAUDE.md ファイルとは何ですか？どう使いますか？')">📄 CLAUDE.md</button>
+  <button class="topic-btn" onclick="quickAsk('Claude のプロジェクト機能の使い方を教えてください')">📁 プロジェクト</button>
+  <button class="topic-btn" onclick="quickAsk('Claude API を Python で使う基本的な方法を教えてください')">🐍 Python API</button>
+  <button class="topic-btn" onclick="quickAsk('Claude のモデルの種類と特徴の違いを教えてください')">🤖 モデル比較</button>
+  <button class="topic-btn" onclick="quickAsk('Claude Code の settings.json で設定できる項目を教えてください')">⚙️ settings.json</button>
+  <button class="topic-btn" onclick="quickAsk('効果的なプロンプトの書き方を教えてください')">✍️ プロンプト術</button>
+</div>
+
+<div id="messages">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">
+      <svg viewBox="0 0 24 24" fill="none" width="48" height="48">
+        <path d="M19 7C16.8 4.5 13.6 3 10 3C4.5 3 0 7.5 0 13C0 18.5 4.5 23 10 23C13.6 23 16.8 21.5 19 19" stroke="url(#cg1)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M15.5 10C14.1 8.2 11.9 7 9.5 7C5.9 7 3 9.9 3 13.5C3 17.1 5.9 20 9.5 20C11.9 20 14.1 18.8 15.5 17" stroke="url(#cg2)" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+        <defs>
+          <linearGradient id="cg1" x1="0" y1="3" x2="19" y2="23" gradientUnits="userSpaceOnUse"><stop stop-color="#D97553"/><stop offset="1" stop-color="#F0A07A"/></linearGradient>
+          <linearGradient id="cg2" x1="3" y1="7" x2="15.5" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#D97553"/><stop offset="1" stop-color="#F0A07A"/></linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <h2>Claude について何でも聞いてください</h2>
+    <p>Claude Code・チャット・プロジェクト・API など、Claudeに関する使い方をわかりやすく説明します。</p>
+    <div class="welcome-cards">
+      <div class="welcome-card" onclick="quickAsk('Claude Code とは何ですか？できることを教えてください')">
+        <div class="card-icon">🖥️</div>
+        <div class="card-title">Claude Code</div>
+        <div class="card-desc">CLIツールの基本・使い方・機能</div>
+      </div>
+      <div class="welcome-card" onclick="quickAsk('Claude のチャット機能で便利な使い方を教えてください')">
+        <div class="card-icon">💬</div>
+        <div class="card-title">チャット機能</div>
+        <div class="card-desc">会話・プロジェクト・ファイル添付</div>
+      </div>
+      <div class="welcome-card" onclick="quickAsk('Anthropic API を使い始めるには何が必要ですか？')">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">API 利用</div>
+        <div class="card-desc">APIキー取得からSDK活用まで</div>
+      </div>
+      <div class="welcome-card" onclick="quickAsk('Claude Code の便利なキーボードショートカットを教えてください')">
+        <div class="card-icon">⌨️</div>
+        <div class="card-title">ショートカット</div>
+        <div class="card-desc">Claude Code の効率的な操作</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="input" placeholder="Claude の使い方について何でも質問してください…" rows="1"></textarea>
+    <button id="sendBtn" title="送信 (Enter)">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+  <div class="input-footer">Enter で送信 / Shift+Enter で改行</div>
+</div>
+
+<script>
+  // ── State ──
+  const history = [];
+  let streaming = false;
+
+  // ── Dark mode ──
+  const toggle = document.getElementById("darkToggle");
+  const saved = localStorage.getItem("theme");
+  if (saved === "dark") { document.body.classList.add("dark"); toggle.textContent = "☀️ ライト"; }
+  toggle.onclick = () => {
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    toggle.textContent = isDark ? "☀️ ライト" : "🌙 ダーク";
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  };
+
+  // ── Textarea auto-resize ──
+  const inputEl = document.getElementById("input");
+  inputEl.addEventListener("input", () => {
+    inputEl.style.height = "auto";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";
+  });
+
+  // ── Send ──
+  inputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  document.getElementById("sendBtn").onclick = send;
+
+  function quickAsk(text) {
+    inputEl.value = text;
+    inputEl.dispatchEvent(new Event("input"));
+    send();
+  }
+
+  function send() {
+    const text = inputEl.value.trim();
+    if (!text || streaming) return;
+
+    // Hide welcome
+    const welcome = document.getElementById("welcome");
+    if (welcome) welcome.remove();
+
+    history.push({ role: "user", content: text });
+    appendMsg("user", text);
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    document.getElementById("sendBtn").disabled = true;
+    streaming = true;
+
+    // Show typing indicator
+    const typingId = "typing-" + Date.now();
+    appendTyping(typingId);
+
+    fetchStream([...history], typingId);
+  }
+
+  async function fetchStream(messages, typingId) {
+    let buffer = "";
+    let bubbleEl = null;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages })
+      });
+
+      if (!res.ok) {
+        let errMsg = "不明なエラー";
+        try { const err = await res.json(); errMsg = err.error || errMsg; } catch (_) {}
+        removeTyping(typingId);
+        appendAiError("❌ エラー: " + errMsg);
+        finalize();
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let partial = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        partial += decoder.decode(value, { stream: true });
+        const lines = partial.split("\n");
+        partial = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = JSON.parse(line.slice(6));
+
+          if (data.type === "text") {
+            if (!bubbleEl) {
+              removeTyping(typingId);
+              bubbleEl = appendMsgStreaming("ai");
+            }
+            buffer += data.text;
+            bubbleEl.innerHTML = typeof marked !== "undefined" ? marked.parse(buffer) : escHtml(buffer);
+            scrollToBottom();
+          } else if (data.type === "error") {
+            removeTyping(typingId);
+            appendAiError("❌ " + data.text);
+            finalize();
+            return;
+          } else if (data.type === "done") {
+            history.push({ role: "assistant", content: buffer });
+            if (bubbleEl) addCopyButton(bubbleEl.closest(".msg"), buffer);
+            finalize();
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      removeTyping(typingId);
+      appendAiError("❌ 通信エラー: " + e.message);
+    }
+    finalize();
+  }
+
+  function finalize() {
+    streaming = false;
+    document.getElementById("sendBtn").disabled = false;
+    inputEl.focus();
+    scrollToBottom();
+  }
+
+  function claudeIcon() {
+    return `<svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+      <path d="M17 6.5C15.2 4.4 12.5 3 9.5 3C4.3 3 0 7.3 0 12.5C0 17.7 4.3 22 9.5 22C12.5 22 15.2 20.6 17 18.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M13.5 9.5C12.3 8 10.5 7 8.5 7C5.5 7 3 9.5 3 12.5C3 15.5 5.5 18 8.5 18C10.5 18 12.3 17 13.5 15.5" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity="0.65"/>
+    </svg>`;
+  }
+
+  // marked が読み込まれていない場合も安全にエラーを表示する
+  function appendAiError(text) {
+    const div = document.createElement("div");
+    div.className = "msg ai";
+    div.innerHTML = `<div class="avatar">${claudeIcon()}</div><div><div class="bubble" style="color:#e53935">${escHtml(text)}</div></div>`;
+    msgsEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  // ── DOM helpers ──
+  const msgsEl = document.getElementById("messages");
+
+  function appendMsg(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    const avatar = role === "ai" ? claudeIcon() : "👤";
+    const content = role === "ai"
+      ? (typeof marked !== "undefined" ? marked.parse(text) : escHtml(text).replace(/\n/g, "<br>"))
+      : escHtml(text).replace(/\n/g, "<br>");
+    div.innerHTML = `
+      <div class="avatar">${avatar}</div>
+      <div>
+        <div class="bubble">${content}</div>
+        ${role === "ai" ? `<div class="msg-actions"><button class="copy-btn" onclick="copyText(this,'${escAttr(text)}')">コピー</button></div>` : ""}
+      </div>`;
+    msgsEl.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  function appendMsgStreaming(role) {
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.innerHTML = `<div class="avatar">${claudeIcon()}</div><div><div class="bubble"></div></div>`;
+    msgsEl.appendChild(div);
+    scrollToBottom();
+    return div.querySelector(".bubble");
+  }
+
+  function addCopyButton(msgDiv, text) {
+    const inner = msgDiv.querySelector("div:last-child");
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "コピー";
+    btn.onclick = () => { navigator.clipboard.writeText(text); btn.textContent = "✓ コピーしました"; setTimeout(() => btn.textContent = "コピー", 2000); };
+    actions.appendChild(btn);
+    inner.appendChild(actions);
+  }
+
+  function appendTyping(id) {
+    const div = document.createElement("div");
+    div.className = "msg ai";
+    div.id = id;
+    div.innerHTML = `<div class="avatar">${claudeIcon()}</div><div><div class="bubble typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>`;
+    msgsEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function scrollToBottom() {
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function escAttr(s) {
+    return s.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+  }
+
+  function copyText(btn, text) {
+    navigator.clipboard.writeText(text);
+    btn.textContent = "✓ コピーしました";
+    setTimeout(() => btn.textContent = "コピー", 2000);
+  }
+</script>
+</body>
+</html>

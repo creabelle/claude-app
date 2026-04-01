@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(npm --version)",
+      "Bash(py --version)",
+      "Bash(pip show:*)",
+      "Bash(pip list:*)",
+      "Bash(pip install:*)",
+      "Bash(find C:/Users/creab/.claude/plugins -name *.md -o -name *.yaml -o -name *.yml)",
+      "Bash(find C:/Users/creab/.claude/ -name *.md)",
+      "Bash(python -m json.tool)",
+      "Bash(find C:/Users/creab/AppData/Roaming/Antigravity/ -name *.md -o -name *.yaml -o -name *.yml)",
+      "Bash(find C:/Users/creab/.claude/ C:/Users/creab/AppData/Roaming/Antigravity/User/ -name *.json)",
+      "Bash(find C:/Users/creab/ -path */skills/*.md)",
+      "Bash(find C:/Users/creab/.claude/ -path */skills*)",
+      "Bash(head -20 find C:/Users/creab/AppData/Roaming/Antigravity/ -path */skills* -name *.md)",
+      "Bash(find C:/Users/creab/AppData/Local/Programs/Antigravity/ -name *.md)",
+      "Bash(find C:/Users/creab/AppData/Local/Programs/Antigravity/bin/ -name *.md)",
+      "Bash(python -c \":*)",
+      "Bash(git --version)",
+      "Bash(cmd.exe /c 'node --version')",
+      "Bash(cmd.exe /c 'npm --version')",
+      "Bash(cmd.exe /c \"where gh 2>nul && gh --version || echo gh: 未インストール\")",
+      "Bash(cmd.exe /c \"where node 2>nul && node --version || echo node: 未インストール\")",
+      "Bash(cmd.exe /c \"where npm 2>nul && npm --version || echo npm: 未インストール\")"
+    ]
+  }
+}
